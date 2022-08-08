@@ -1,0 +1,17 @@
+1 Both_hands
+2 Both_legs
+3 Both_legs+Both_hands
+4 Both_legs+Head
+5 Both_legs+Left_hand
+6 Both_legs+Right_hand
+7 Head
+8 Left_hand
+9 Left_leg
+10 Left_leg+Both_hands
+11 Left_leg+Left_hand
+12 Left_leg+Right_hand
+13 Normal
+14 Right_hand
+15 Right_leg
+16 Right_leg+Left_hand
+17 Right_leg+Right_hand
