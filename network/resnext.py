@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from Resnet import conv1x1x1, Bottleneck, ResNet
+from network.Resnet import conv1x1x1, Bottleneck, ResNet
 
 # from network.utils import partialclass
 

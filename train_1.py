@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 from dataloaders.dataset import VideoDataset
-from network import C3D_model, R2Plus1D_model, R3D_model, Resnet, Res2Net3D
+from network import C3D_model, R2Plus1D_model, R3D_model, Resnet, Res2Net3D, resnext
 
 warnings.filterwarnings("ignore")
 
@@ -66,7 +66,7 @@ nEpochs = 400  # Number of epochs for training
 resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True  # See evolution of the test set when training
 nTestInterval = 1  # Run on test set every nTestInterval epochs
-snapshot = 200  # Store a model every snapshot epochs
+snapshot = 400  # Store a model every snapshot epochs
 lr = 5e-3  # Learning rate
 
 dataset = 'infant_multi_labels'
@@ -100,19 +100,9 @@ else:
     run_id = int(list[-1]) + 1 if runs else 0
 
 save_dir = os.path.join(save_dir_root, 'run', 'run_' + str(run_id))
-train_txt = open(save_dir_root + "a.txt","a")
-with open(train_txt, 'w') as f:
-    f.write("nEpochs: " + nEpochs + ("\n") +
-            "lr: " + lr + ("\n") +
-            "nEpochs: " + nEpochs + ("\n"))
-    f.close()
-with open(save_dir + '/val.txt', 'w') as f:
-    f.close()
-with open(save_dir + '/test.txt', 'w') as f:
-    f.close()
 
 # 模型选择
-modelName = 'Resnet'
+modelName = 'ResneXt'
 # modelName = '3DResnet'
 saveName = modelName
 
@@ -141,6 +131,9 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
         state_dict = {k: v for k, v in pretext_model.items() if k in model_dict.keys()}
         model_dict.update(state_dict)
         model.load_state_dict(model_dict)
+    elif modelName == 'ResneXt':
+        model = resnext.generate_model(50)
+        train_params = model.parameters()
     elif modelName == 'Res2Net3D':
         model = Res2Net3D.res2net50(pretrained=False)
         train_params = model.parameters()
@@ -189,13 +182,11 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
     best_cf1 = 0.0
     best_map = 0.0
 
-    with open(save_dir + '/train.txt', 'a') as f:
-        f.write("modelName" + modelName + ("\n") +
-                "nEpochs: " + nEpochs + ("\n") +
-                "lr: " + lr + ("\n") +
-                "nEpochs: " + nEpochs + ("\n")+
-                "scheduler: " + scheduler.step() + ("\n") +
-                "resize_height: {} resize_width: {} crop_size: {}".format(VideoDataset.self.resize_height, VideoDataset.self.resize_width, VideoDataset.self.crop_size)+ ("\n"))
+    with open(save_dir + '/train.txt', 'w') as f:
+        f.close()
+    with open(save_dir + '/val.txt', 'w') as f:
+        f.close()
+    with open(save_dir + '/test.txt', 'w') as f:
         f.close()
 
     for epoch in range(resume_epoch, num_epochs):
@@ -396,15 +387,15 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
             writer.add_scalar('data/test_loss_epoch', epoch_loss, epoch)
             writer.add_scalar('data/test_acc_epoch', epoch_acc, epoch)
 
+
+            print("[test] Epoch: {}/{} Loss: {} Acc: {} CP: {} CR: {} CF1: {} OP: {} OR: {} OF1: {} MAP: {} "
+                  .format(epoch + 1, nEpochs, epoch_loss, epoch_acc, epoch_cp, epoch_cr, epoch_cf1, epoch_op, epoch_or
+                          , epoch_of1, epoch_map))
             with open(save_dir + '/test.txt', 'a') as f:
                 f.write("[{}] Epoch: {}/{} Loss: {} Acc: {} CP: {} CR: {} CF1: {} OP: {} OR: {} OF1: {} MAP: {} "
                         .format(phase, epoch + 1, nEpochs, epoch_loss, epoch_acc, epoch_cp, epoch_cr, epoch_cf1,
                                 epoch_op, epoch_or, epoch_of1, epoch_map) + "\n")
                 f.close()
-
-            print("[test] Epoch: {}/{} Loss: {} Acc: {} CP: {} CR: {} CF1: {} OP: {} OR: {} OF1: {} MAP: {} "
-                  .format(epoch + 1, nEpochs, epoch_loss, epoch_acc, epoch_cp, epoch_cr, epoch_cf1, epoch_op, epoch_or
-                          , epoch_of1, epoch_map))
             stop_time = timeit.default_timer()
             print("Execution time: " + str(stop_time - start_time) + "\n")
 
