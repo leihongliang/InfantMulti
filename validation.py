@@ -14,6 +14,10 @@ from torch.autograd import Variable
 from dataloaders.dataset import VideoDataset
 from network import C3D_model, R2Plus1D_model, R3D_model, Resnet
 
+"""
+旧版本，没啥用了
+新的train文件，换了评价标准，而且有函数会保留每轮训练结果
+"""
 def Accuracy(y_true, y_pred):
     count = 0
     for i in range(y_true.shape[0]):

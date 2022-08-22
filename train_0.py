@@ -16,7 +16,10 @@ from torch.autograd import Variable
 from dataloaders.dataset import VideoDataset
 from network import C3D_model, R2Plus1D_model, R3D_model, Resnet, Res2Net3D
 
-#原始版本
+"""
+原始版本
+没啥用了
+"""
 
 def adjust_learning_rate_poly(optimizer, epoch, num_epochs, base_lr, power):
     lr = base_lr * (1 - epoch / num_epochs) ** power

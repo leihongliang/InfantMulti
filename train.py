@@ -19,7 +19,9 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-#多任务
+"""
+多任务
+"""
 
 def compute_mAP(y_true, y_pred):
     AP = []

@@ -18,10 +18,11 @@ from torch.autograd import Variable
 
 from dataloaders.dataset import VideoDataset
 from network import C3D_model, R2Plus1D_model, R3D_model, Resnet, Res2Net3D, resnext
+from utils import lossFunction
 
 warnings.filterwarnings("ignore")
 
-"""改进版本"""
+"""主 改进版本"""
 """增加了一些参数"""
 
 def compute_mAP(y_true, y_pred):
@@ -102,8 +103,8 @@ else:
 save_dir = os.path.join(save_dir_root, 'run', 'run_' + str(run_id))
 
 # 模型选择
-modelName = 'ResneXt'
-# modelName = '3DResnet'
+# modelName = 'ResneXt'
+modelName = 'Resnet'
 saveName = modelName
 
 
@@ -141,10 +142,11 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
         print('No more model')
         raise NotImplementedError
 
-    # 单标签二分类损失函数
-    # criterion = nn.CrossEntropyLoss()  # standard crossentropy loss for classification
+
     # 多标签二分类问题函数
-    criterion_multi = nn.BCELoss()
+    # criterion_multi = nn.BCELoss()
+    # criterion_multi = lossFunction.lsep()
+
     optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
     # 原参数 step_size=10
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.8)  # step_size=50
@@ -162,8 +164,6 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
     print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.to(device)
 
-    # 单标签
-    # criterion.to(device)
     criterion_multi.to(device)
 
     log_dir = os.path.join(save_dir, 'models', datetime.now().strftime('%b%d_%H-%M-%S') + '_' + socket.gethostname())
@@ -213,9 +213,10 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 model.eval()
 
             for inputs, labels in tqdm(trainval_loaders[phase]):
-                # Tensor(20, 3, 16, 224, 224)
+                # inputs(batchsize, 3, 16, 112, 112)
+                # labels(batchsize, 5)
                 inputs = Variable(inputs, requires_grad=True).to(device)
-                # Tensor(20, 5)
+
                 labels = Variable(labels).to(device)
                 optimizer.zero_grad()
                 # count += 1
