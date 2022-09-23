@@ -63,11 +63,11 @@ setup_seed(2)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device being used:", device)
 
-nEpochs = 1000  # Number of epochs for training
+nEpochs = 400  # Number of epochs for training
 resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True  # See evolution of the test set when training
 nTestInterval = 1  # Run on test set every nTestInterval epochs
-snapshot = 1000  # Store a model every snapshot epochs
+snapshot = 400  # Store a model every snapshot epochs
 lr = 5e-3  # Learning rate
 
 dataset = 'infant_multi_labels'
@@ -144,11 +144,11 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
 
     # 多标签二分类问题函数
-    # criterion_multi = nn.BCELoss()
-    criterion_multi = lossFunction.lsep()
+    criterion_multi = nn.BCELoss()
+    # criterion_multi = lossFunction.lsep()
     # criterion_multi = lossFunction.bce()
 
-    optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
+    optimizer = optim.SGD(train_params, lr=lr, momentum=0.8, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.9)
     if resume_epoch == 0:
         print("Training {} from scratch...".format(modelName))

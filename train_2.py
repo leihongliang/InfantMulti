@@ -145,11 +145,11 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
     # 多标签二分类问题函数
     # criterion_multi = nn.BCELoss()
-    criterion_multi = lossFunction.lsep()
+    criterion_multi = lossFunction.wlsep()
     # criterion_multi = lossFunction.bce()
 
     optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.9)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.8)
     if resume_epoch == 0:
         print("Training {} from scratch...".format(modelName))
     else:

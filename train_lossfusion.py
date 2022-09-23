@@ -144,12 +144,12 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
 
     # 多标签二分类问题函数
-    # criterion_multi = nn.BCELoss()
-    criterion_multi = lossFunction.lsep()
+    criterion_multi1 = nn.BCELoss()
+    criterion_multi2 = lossFunction.wlsep()
     # criterion_multi = lossFunction.bce()
 
     optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.9)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.8)
     if resume_epoch == 0:
         print("Training {} from scratch...".format(modelName))
     else:
@@ -163,7 +163,8 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
     print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     model.to(device)
-    criterion_multi.to(device)
+    criterion_multi1.to(device)
+    criterion_multi2.to(device)
 
     log_dir = os.path.join(save_dir, 'models', datetime.now().strftime('%b%d_%H-%M-%S') + '_' + socket.gethostname())
     writer = SummaryWriter(log_dir=log_dir)
@@ -227,8 +228,9 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 # print(outputs)
 
                 # bce需要预先经过sigmoid
-                # loss = criterion_multi(torch.sigmoid(outputs.float()), labels.float())
-                loss = criterion_multi(outputs.float(), labels.float())
+                loss1 = criterion_multi1(torch.sigmoid(outputs.float()), labels.float())
+                loss2 = criterion_multi2(outputs.float(), labels.float())
+                loss = loss1 + loss2
 
                 probs = torch.sigmoid(outputs)
                 # 这个放到后面整个矩阵一起处理
@@ -324,8 +326,10 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 # probs = nn.Softmax(dim=1)(outputs)
                 # preds = torch.max(probs, 1)[1]
 
-                # loss = criterion_multi(torch.sigmoid(outputs.float()), labels.float())
-                loss = criterion_multi(outputs.float(), labels.float())
+                loss1 = criterion_multi1(torch.sigmoid(outputs.float()), labels.float())
+                loss2 = criterion_multi2(torch.sigmoid(outputs.float()), labels.float())
+                loss = loss1 + 0.5 * loss2
+
                 probs = torch.sigmoid(outputs)
                 # probs_np = probs.cpu().detach().numpy()
                 # probs_01 = np.int64(probs_np > 0.5)
