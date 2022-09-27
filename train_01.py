@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
 from dataloaders.dataset import VideoDataset
-from network import C3D_model, R2Plus1D_model, R3D_model, Resnet, Res2Net3D, resnext
+from network import C3D_model, R2Plus1D_model, R3D_model, Resnet, Res2Net3D, resnext, C3D_base
 from utils import lossFunction
 
 warnings.filterwarnings("ignore")
@@ -67,8 +67,8 @@ nEpochs = 400  # Number of epochs for training
 resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True  # See evolution of the test set when training
 nTestInterval = 1  # Run on test set every nTestInterval epochs
-snapshot = 400  # Store a model every snapshot epochs
-lr = 5e-3  # Learning rate
+snapshot = 1000  # Store a model every snapshot epochs
+lr = 5e-3 # Learning rate
 
 dataset = 'infant_multi_labels'
 
@@ -103,8 +103,8 @@ else:
 save_dir = os.path.join(save_dir_root, 'run', 'run_' + str(run_id))
 
 # 模型选择
-# modelName = 'ResneXt'
-modelName = 'Resnet'
+modelName = 'C3D'
+# modelName = 'Resnet'
 saveName = modelName
 
 
@@ -112,12 +112,13 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 num_epochs=nEpochs, save_epoch=snapshot, useTest=useTest, test_interval=nTestInterval):
     global acc_epoch
     if modelName == 'C3D':
-        model = C3D_model.C3D(num_classes=num_classes, pretrained=True)
-        train_params = [{'params': C3D_model.get_1x_lr_params(model), 'lr': lr},
-                        {'params': C3D_model.get_10x_lr_params(model), 'lr': lr * 10}]
+        model = C3D_base.C3D(num_classes=num_classes , pretrained=False)
+        train_params = [{'params': C3D_base.get_1x_lr_params(model), 'lr': lr},
+                        {'params': C3D_base.get_10x_lr_params(model), 'lr': lr * 10}]
     elif modelName == 'R2Plus1D':
         model = R2Plus1D_model.R2Plus1DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
-        train_params = [{'params': R2Plus1D_model.get_1x_lr_params(model), 'lr': lr},
+        train_params = [{'params': R2Plus1D_model.get_1x_lr_params(model), 'lr'
+                                                                           '': lr},
                         {'params': R2Plus1D_model.get_10x_lr_params(model), 'lr': lr * 10}]
     elif modelName == 'R3D':
         model = R3D_model.R3DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
@@ -145,10 +146,10 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
     # 多标签二分类问题函数
     criterion_multi = nn.BCELoss()
-    # criterion_multi = lossFunction.lsep()
+    # criterion_multi2 = lossFunction.wlsep()
     # criterion_multi = lossFunction.bce()
 
-    optimizer = optim.SGD(train_params, lr=lr, momentum=0.8, weight_decay=5e-4)
+    optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.9)
     if resume_epoch == 0:
         print("Training {} from scratch...".format(modelName))
@@ -169,9 +170,9 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
     writer = SummaryWriter(log_dir=log_dir)
 
     print('Training model on {} dataset...'.format(dataset))
-    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train', clip_len=16), batch_size=32, shuffle=True, num_workers=8)
-    val_dataloader = DataLoader(VideoDataset(dataset=dataset, split='val', clip_len=16), batch_size=32, num_workers=8)
-    test_dataloader = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=32, num_workers=8)
+    train_dataloader = DataLoader(VideoDataset(dataset=dataset, split='train', clip_len=16), batch_size=16, shuffle=True, num_workers=8)
+    val_dataloader = DataLoader(VideoDataset(dataset=dataset, split='val', clip_len=16), batch_size=16, num_workers=8)
+    test_dataloader = DataLoader(VideoDataset(dataset=dataset, split='test', clip_len=16), batch_size=16, num_workers=8)
 
     trainval_loaders = {'train': train_dataloader, 'val': val_dataloader}
     trainval_sizes = {x: len(trainval_loaders[x].dataset) for x in ['train', 'val']}
@@ -215,7 +216,6 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 # inputs(batchsize, 3, 16, 112, 112)
                 # labels(batchsize, 5)
                 inputs = Variable(inputs, requires_grad=True).to(device)
-
                 labels = Variable(labels).to(device)
                 optimizer.zero_grad()
                 # count += 1
@@ -228,7 +228,9 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
                 # bce需要预先经过sigmoid
                 # loss = criterion_multi(torch.sigmoid(outputs.float()), labels.float())
-                loss = criterion_multi(outputs.float(), labels.float())
+                loss1 = criterion_multi(torch.sigmoid(outputs.float()), labels.float())
+                # loss2 = criterion_multi2(outputs.float(), labels.float())
+                loss = loss1
 
                 probs = torch.sigmoid(outputs)
                 # 这个放到后面整个矩阵一起处理
@@ -325,7 +327,10 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 # preds = torch.max(probs, 1)[1]
 
                 # loss = criterion_multi(torch.sigmoid(outputs.float()), labels.float())
-                loss = criterion_multi(outputs.float(), labels.float())
+                loss1 = criterion_multi(torch.sigmoid(outputs.float()), labels.float())
+                # loss2 = criterion_multi2(outputs.float(), labels.float())
+                loss = loss1
+
                 probs = torch.sigmoid(outputs)
                 # probs_np = probs.cpu().detach().numpy()
                 # probs_01 = np.int64(probs_np > 0.5)
@@ -358,7 +363,7 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
             epoch_map = compute_mAP(sum_target, sum_prob)
 
-            if epoch > 40:
+            if epoch > 50:
                 if epoch_acc > best_acc:
                     best_acc = epoch_acc
                     acc_epoch = epoch

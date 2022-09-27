@@ -138,7 +138,8 @@ def find_best(testData, run_id):
 
 
 if __name__ == '__main__':
-    run_id = 60
+    run_id = 93
+
 
     testData, trainData = get_data(run_id)
     bestdict = find_best(testData, run_id)

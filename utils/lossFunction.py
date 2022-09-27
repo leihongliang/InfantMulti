@@ -1,13 +1,25 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-
+# from utils.lossFunction import bce_lsep, lsep, wlsep, bce
 
 class bce(nn.Module):
+
     def __init__(self) -> None:
+
         super(bce, self).__init__()
 
-    def forward(self, output_sigmoid, target):
+    def forward(self, output, target):
+        """
+
+        Args:
+            output: 已经做了sigmoid，不需要额外进行
+            target: ground-true
+
+        Returns:
+
+        """
+        output_sigmoid = torch.sigmoid(output.float())
         batch_size = output_sigmoid.shape[0]  # 有几条样本的输出结果
         loss = 0
         for i in range(batch_size):  # 对每条样本
@@ -52,19 +64,26 @@ class wlsep(nn.Module):
             return F.pad(diffs.add(-(1 - mask) * 1e10),
                          pad=(0, 0, 0, 1)).logsumexp(dim=1).masked_select(labels.bool()).mean()
 
-class bce_lsep(nn.Module):
+class bce_wlsep(nn.Module):
     def __init__(self) -> None:
-        super(bce_lsep, self).__init__()
+        super(bce_wlsep, self).__init__()
 
     def forward(self, output, target):
-        batch_size = output.shape[0]  # 有几条样本的输出结果
-        loss = 0
-        for i in range(batch_size):  # 对每条样本
-            for j in range(len(output[i])):  # 对每条样本所有类别
-                if target[i][j] == 0:
-                    temp_loss = torch.log(1 - output[i][j])
-                else:
-                    temp_loss = torch.log(output[i][j])
-                loss = loss - temp_loss
-        bce = loss / (batch_size * output.shape[1])
+        """
 
+        Args:
+            output: 输入不需要预先sigmoid，函数里面再做
+            target: ground-true
+
+        Returns: bce + wlsep (without sigmoid)
+
+        """
+        bceF = bce()
+        bceloss = bceF(output, target)
+        wlsepF = wlsep()
+        wlseploss = wlsepF(output, target)
+        # wlseploss = torch.tanh(torch.log(wlseploss))
+
+        fuss = bceloss + wlseploss
+
+        return fuss

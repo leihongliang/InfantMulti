@@ -11,7 +11,6 @@ import random
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 import torch
-from tensorboardX import SummaryWriter
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.autograd import Variable

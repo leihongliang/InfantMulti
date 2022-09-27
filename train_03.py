@@ -68,7 +68,7 @@ resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True  # See evolution of the test set when training
 nTestInterval = 1  # Run on test set every nTestInterval epochs
 snapshot = 1000  # Store a model every snapshot epochs
-lr = 5e-3 # Learning rate
+lr = 1e-3 # Learning rate
 
 dataset = 'infant_multi_labels'
 
@@ -112,12 +112,13 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 num_epochs=nEpochs, save_epoch=snapshot, useTest=useTest, test_interval=nTestInterval):
     global acc_epoch
     if modelName == 'C3D':
-        model = C3D.C3D(num_classes=num_classes , pretrained=True)
-        train_params = [{'params': C3D_model.get_1x_lr_params(model), 'lr': lr},
-                        {'params': C3D_model.get_10x_lr_params(model), 'lr': lr * 10}]
+        model = C3D_base.C3D(num_classes=num_classes , pretrained=False)
+        train_params = [{'params': C3D_base.get_1x_lr_params(model), 'lr': lr},
+                        {'params': C3D_base.get_10x_lr_params(model), 'lr': lr * 10}]
     elif modelName == 'R2Plus1D':
         model = R2Plus1D_model.R2Plus1DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
-        train_params = [{'params': R2Plus1D_model.get_1x_lr_params(model), 'lr': lr},
+        train_params = [{'params': R2Plus1D_model.get_1x_lr_params(model), 'lr'
+                                                                           '': lr},
                         {'params': R2Plus1D_model.get_10x_lr_params(model), 'lr': lr * 10}]
     elif modelName == 'R3D':
         model = R3D_model.R3DClassifier(num_classes=num_classes, layer_sizes=(2, 2, 2, 2))
@@ -145,10 +146,10 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
     # 多标签二分类问题函数
     criterion_multi = nn.BCELoss()
-    criterion_multi2 = lossFunction.wlsep()
+    # criterion_multi2 = lossFunction.wlsep()
     # criterion_multi = lossFunction.bce()
 
-    optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=1e-4)
+    optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.9)
     if resume_epoch == 0:
         print("Training {} from scratch...".format(modelName))
@@ -215,7 +216,6 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
                 # inputs(batchsize, 3, 16, 112, 112)
                 # labels(batchsize, 5)
                 inputs = Variable(inputs, requires_grad=True).to(device)
-
                 labels = Variable(labels).to(device)
                 optimizer.zero_grad()
                 # count += 1
@@ -363,7 +363,7 @@ def train_model(dataset = dataset, save_dir=save_dir, num_classes=num_classes, l
 
             epoch_map = compute_mAP(sum_target, sum_prob)
 
-            if epoch > 40:
+            if epoch > 50:
                 if epoch_acc > best_acc:
                     best_acc = epoch_acc
                     acc_epoch = epoch

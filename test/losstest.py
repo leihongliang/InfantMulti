@@ -30,38 +30,6 @@ output3 = tensor([[0.9, 5, 2, 5, 0]]) # 多检出来
 output4 = tensor([[0.9, 0.3, 2, 0, 4]]) # 一对一错
 
 
-
-def lsep(scores, labels, weights=None):
-    mask = ((labels.unsqueeze(1).expand(labels.size(0), labels.size(1), labels.size(1)) -
-             labels.unsqueeze(2).expand(labels.size(0), labels.size(1), labels.size(1))) > 0).float()
-    diffs = (scores.unsqueeze(2).expand(labels.size(0), labels.size(1), labels.size(1)) -
-             scores.unsqueeze(1).expand(labels.size(0), labels.size(1), labels.size(1)))
-    return diffs.exp().mul(mask).sum().add(1).log().mean()
-
-def lsep2(input, target, average=True):
-    a = input.unsqueeze(1)
-    b = input.unsqueeze(2)
-    differences = input.unsqueeze(1) - input.unsqueeze(2)
-    where_different = (target.unsqueeze(1) < target.unsqueeze(2)).float()
-    exps = differences.exp() * where_different
-    lsep = torch.log(1 + exps.sum(2).sum(1))
-    if average:
-        return lsep.mean()
-    else:
-        return lsep
-
-def wlsep(scores, labels, weights=None):
-    mask = ((labels.unsqueeze(1).expand(labels.size(0), labels.size(1), labels.size(1)) -
-             labels.unsqueeze(2).expand(labels.size(0), labels.size(1), labels.size(1))) > 0).float()
-    diffs = (scores.unsqueeze(2).expand(labels.size(0), labels.size(1), labels.size(1)) -
-             scores.unsqueeze(1).expand(labels.size(0), labels.size(1), labels.size(1)))
-    if weights is not None:
-        return F.pad(diffs.add(-(1 - mask) * 1e10),
-                     pad=(0, 0, 0, 1)).logsumexp(dim=1).mul(weights).masked_select(labels.bool()).mean()
-    else:
-        return F.pad(diffs.add(-(1 - mask) * 1e10),
-                     pad=(0, 0, 0, 1)).logsumexp(dim=1).masked_select(labels.bool()).mean()
-
 bce = nn.BCELoss()
 loss_bce0 = bce(torch.sigmoid(output0.float()), label.float())
 loss_bce1 = bce(torch.sigmoid(output1.float()), label.float())
